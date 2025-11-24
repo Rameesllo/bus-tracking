@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>College Bus Live Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 100vh; width: 100%; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC6H9bhWUuBU8J33HtvQCd1lmmdvMFgnuo",
+  authDomain: "bus-tracking2.firebaseapp.com",
+  databaseURL: "https://bus-tracking2-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bus-tracking2",
+  storageBucket: "bus-tracking2.appspot.com",
+  messagingSenderId: "113097926596",
+  appId: "1:113097926596:web:a5ee33ef8bb5cc34222691"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Load Leaflet JS
+const leafletJS = document.createElement("script");
+leafletJS.src = "https://unpkg.com/leaflet/dist/leaflet.js";
+leafletJS.onload = initMap;
+document.body.appendChild(leafletJS);
+
+let map;
+let marker;
+
+function initMap() {
+  // Set default college location center
+  map = L.map("map").setView([11.134140689954181, 75.94287835862663], 14);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 20
+  }).addTo(map);
+
+  // LISTEN ONLY TO ONE BUS (bus1)
+  const busRef = ref(db, "buses/bus1");
+
+  onValue(busRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const lat = data.lat;
+    const lng = data.lng;
+
+    if (!marker) {
+      marker = L.marker([lat, lng]).addTo(map);
+    } else {
+      marker.setLatLng([lat, lng]);
+    }
+
+    marker.bindPopup(`<b>${data.name}</b><br>${lat}, ${lng}`);
+    map.setView([lat, lng]); // Center map on bus
+  });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bus Live Location Uploader</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { padding: 10px; width: 200px; }
+    button { padding: 10px 20px; margin-top: 10px; }
+    #status { margin-top: 20px; color: green; }
+    #error { margin-top: 20px; color: red; }
+  </style>
+</head>
+<body>
+
+<h2>Bus Live Location Uploader</h2>
+
+<label>Bus ID:</label><br>
+<input id="busId" placeholder="bus1"><br><br>
+
+<label>Bus Name:</label><br>
+<input id="busName" placeholder="College Bus 1"><br><br>
+
+<button onclick="startTracking()">Start Tracking</button>
+
+<p id="status"></p>
+<p id="error"></p>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC6H9bhWUuBU8J33HtvQCd1lmmdvMFgnuo",
+  authDomain: "bus-tracking2.firebaseapp.com",
+  databaseURL: "https://bus-tracking2-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bus-tracking2",
+  storageBucket: "bus-tracking2.appspot.com",
+  messagingSenderId: "113097926596",
+  appId: "1:113097926596:web:a5ee33ef8bb5cc34222691"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+function startTracking() {
+  const id = document.getElementById("busId").value;
+  const name = document.getElementById("busName").value;
+
+  if (!id || !name) {
+    alert("Enter Bus ID and Bus Name");
+    return;
+  }
+
+  document.getElementById("status").innerHTML = "Waiting for GPS permission…";
+
+  if (!navigator.geolocation) {
+    document.getElementById("error").innerHTML = "GPS not supported on this device!";
+    return;
+  }
+
+  // UPDATE EVERY 5 SECONDS
+  setInterval(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        set(ref(db, "buses/" + id), {
+          name: name,
+          lat: lat,
+          lng: lng,
+          lastUpdate: Date.now()
+        });
+
+        document.getElementById("status").innerHTML =
+          "Live Update → " + lat + ", " + lng;
+      },
+      (err) => {
+        document.getElementById("error").innerHTML =
+          "GPS Error: " + err.message + "<br>Turn ON location.";
+      },
+      { enableHighAccuracy: true }
+    );
+  }, 5000);
+}
+
+// ⭐ IMPORTANT → Expose function to global window
+window.startTracking = startTracking;
+
+</script>
+
+</body>
+</html>
