@@ -39,12 +39,19 @@ let map;
 let marker;
 
 function initMap() {
-  // Set default college location center
+  // Center map on college
   map = L.map("map").setView([11.134140689954181, 75.94287835862663], 14);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 20
   }).addTo(map);
+
+  // ⭐ ADD COLLEGE DESTINATION MARKER
+  L.marker([11.134140689954181, 75.94287835862663], {
+    title: "College"
+  })
+  .addTo(map)
+  .bindPopup("College Destination");
 
   // LISTEN ONLY TO ONE BUS (bus1)
   const busRef = ref(db, "buses/bus1");
