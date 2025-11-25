@@ -3,10 +3,15 @@
 <head>
   <title>College Bus Live Map</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
   <style>
     #map { height: 100vh; width: 100%; }
   </style>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
 </head>
+
 <body>
 
 <div id="map"></div>
@@ -25,54 +30,60 @@ const firebaseConfig = {
   appId: "1:113097926596:web:a5ee33ef8bb5cc34222691"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-// Load Leaflet JS
-const leafletJS = document.createElement("script");
-leafletJS.src = "https://unpkg.com/leaflet/dist/leaflet.js";
-leafletJS.onload = initMap;
-document.body.appendChild(leafletJS);
+let map = L.map("map").setView([11.134140689954181, 75.94287835862663], 14);
 
-let map;
-let marker;
+// Add Map Tiles
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 20
+}).addTo(map);
 
-function initMap() {
-  // Center map on college
-  map = L.map("map").setView([11.134140689954181, 75.94287835862663], 14);
+// College Location
+const collegeLat = 11.134140689954181;
+const collegeLng = 75.94287835862663;
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 20
+L.marker([collegeLat, collegeLng]).addTo(map).bindPopup("College Destination");
+
+// Route variable
+let routeControl;
+
+// Listen to bus location
+const busRef = ref(db, "buses/bus1");
+
+onValue(busRef, (snapshot) => {
+  const data = snapshot.val();
+  if (!data) return;
+
+  const busLat = data.lat;
+  const busLng = data.lng;
+
+  // Add or update bus marker
+  if (!window.busMarker) {
+    window.busMarker = L.marker([busLat, busLng]).addTo(map);
+  } else {
+    window.busMarker.setLatLng([busLat, busLng]);
+  }
+
+  // Remove old route
+  if (routeControl) {
+    map.removeControl(routeControl);
+  }
+
+  // Draw new route
+  routeControl = L.Routing.control({
+    waypoints: [
+      L.latLng(busLat, busLng),
+      L.latLng(collegeLat, collegeLng)
+    ],
+    routeWhileDragging: false,
+    addWaypoints: false,
+    draggableWaypoints: false,
+    show: false
   }).addTo(map);
 
-  // ⭐ ADD COLLEGE DESTINATION MARKER
-  L.marker([11.134140689954181, 75.94287835862663], {
-    title: "College"
-  })
-  .addTo(map)
-  .bindPopup("College Destination");
-
-  // LISTEN ONLY TO ONE BUS (bus1)
-  const busRef = ref(db, "buses/bus1");
-
-  onValue(busRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-
-    const lat = data.lat;
-    const lng = data.lng;
-
-    if (!marker) {
-      marker = L.marker([lat, lng]).addTo(map);
-    } else {
-      marker.setLatLng([lat, lng]);
-    }
-
-    marker.bindPopup(`<b>${data.name}</b><br>${lat}, ${lng}`);
-    map.setView([lat, lng]); // Center map on bus
-  });
-}
+});
 </script>
 
 </body>
